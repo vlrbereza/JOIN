@@ -7,7 +7,9 @@ const hits = new Map(); // простий ліміт запитів на кор�
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { SUPABASE_URL, SUPABASE_ANON_KEY, ANTHROPIC_API_KEY } = process.env;
+  const SUPABASE_URL = (process.env.SUPABASE_URL || "").trim().replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+  const SUPABASE_ANON_KEY = (process.env.SUPABASE_ANON_KEY || "").trim();
+  const ANTHROPIC_API_KEY = (process.env.ANTHROPIC_API_KEY || "").trim();
   if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: "На сервері не налаштовано ANTHROPIC_API_KEY" });
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return res.status(500).json({ error: "На сервері не налаштовано Supabase" });
 

@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Join — плануйте подорожі разом</title>
+<meta name="description" content="Join — сервіс для спільного планування подорожей: готелі, дорога, план на кожен день, ресторани та поради. Створюйте поїздку й запрошуйте друзів.">
+<meta property="og:title" content="Join — плануйте подорожі разом">
+<meta property="og:description" content="Готелі, дорога, план на кожен день, ресторани й поради — в одному місці і разом з друзями.">
+<meta name="theme-color" content="#0f766e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230f766e'/%3E%3Ccircle cx='22' cy='32' r='9' fill='none' stroke='white' stroke-width='5'/%3E%3Ccircle cx='42' cy='32' r='9' fill='none' stroke='%23f4a259' stroke-width='5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f5f2ec; --card:#ffffff; --ink:#1b2230; --muted:#6a7180; --line:#e6e1d8;
+  --acc:#0f766e; --acc-ink:#ffffff; --acc-soft:#e3f2ef; --warm:#e8833a; --warm-soft:#fbeadc;
+  --danger:#b42318; --shadow:0 1px 2px rgba(20,20,30,.05),0 6px 18px rgba(20,20,30,.06);
+  --r:16px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#12161d;--card:#1b212b;--ink:#eef1f5;--muted:#9aa3b2;--line:#2b3340;--acc:#2bb3a3;--acc-ink:#0b1513;--acc-soft:#173430;--warm:#f0a061;--warm-soft:#3a2a1d;--shadow:none}
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-text-size-adjust:100%}
+body{padding-bottom:40px}
+#app{max-width:720px;margin:0 auto;padding:14px 14px 30px}
+#app.wide{max-width:1040px}
+h1,h2,h3{margin:0;letter-spacing:-.01em}
+h1{font-size:26px;font-weight:800}
+h2{font-size:19px;font-weight:800}
+h3{font-size:16px;font-weight:700}
+p{margin:.35em 0;line-height:1.45}
+a{color:var(--acc)}
+.muted{color:var(--muted);font-size:13.5px}
+.small{font-size:12.5px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:var(--shadow);margin:10px 0}
+.hero{background:linear-gradient(135deg,var(--acc) 0%,#155e75 100%);color:#fff;border:none}
+.hero .muted{color:rgba(255,255,255,.82)}
+.row{display:flex;gap:8px;align-items:center}
+.between{justify-content:space-between}
+.wrap{flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:8px}
+.grow{flex:1}
+button,.btn{font:inherit;font-weight:700;font-size:14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;justify-content:center;line-height:1.1}
+button:disabled{opacity:.55;cursor:default}
+.primary{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+.big{width:100%;padding:14px;font-size:16px;border-radius:14px}
+.ghost{background:transparent}
+.danger{color:var(--danger)}
+.on{background:var(--warm-soft);border-color:var(--warm);color:var(--warm)}
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.btns .btn,.btns button{padding:8px 11px;font-size:13px}
+input,textarea,select{font:inherit;font-size:16px;width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+textarea{min-height:70px;resize:vertical}
+label{font-weight:700;font-size:14px;display:block;margin:12px 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border-radius:999px;padding:8px 13px;font-weight:600;font-size:14px;border:1px solid var(--line);background:var(--card)}
+.chip.sel{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:6px 14px 8px;margin:6px -14px 0;scrollbar-width:none;position:sticky;top:0;background:var(--bg);z-index:5}
+.tabs::-webkit-scrollbar{display:none}
+.tab{white-space:nowrap;border-radius:999px;padding:8px 12px;font-size:14px;font-weight:700;border:1px solid var(--line);background:var(--card)}
+.tab.sel{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.badge{display:inline-block;font-size:11.5px;font-weight:800;padding:3px 8px;border-radius:999px;background:var(--acc-soft);color:var(--acc)}
+.badge.warm{background:var(--warm-soft);color:var(--warm)}
+.notice{background:var(--warm-soft);border:1px solid var(--warm);color:var(--ink);border-radius:12px;padding:10px 12px;font-size:13.5px;margin:10px 0}
+.steps{display:flex;gap:5px;margin:8px 0 2px}
+.steps i{flex:1;height:5px;border-radius:9px;background:var(--line)}
+.steps i.done{background:var(--acc)}
+.tl{display:flex;flex-direction:column}
+.tli{display:flex;gap:10px;padding:9px 0;border-top:1px dashed var(--line)}
+.tli:first-child{border-top:none}
+.tli .t{width:52px;flex:none;font-weight:800;font-size:13.5px;color:var(--acc)}
+.tli .t small{display:block;color:var(--muted);font-weight:600}
+.kind{font-size:17px}
+.spin{width:16px;height:16px;border:2.5px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.map{width:100%;height:auto;border-radius:12px;background:var(--acc-soft);display:block}
+.map text{font-family:Manrope,system-ui,sans-serif}
+.note{border-top:1px solid var(--line);padding:8px 0}
+.note:first-child{border-top:none}
+.code{font-size:26px;font-weight:800;letter-spacing:.08em;text-align:center;padding:12px;border:2px dashed var(--acc);border-radius:14px;user-select:all;word-break:break-all}
+.tipsec li{margin:6px 0;line-height:1.45}
+.tipsec ul{padding-left:20px;margin:6px 0}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center;z-index:50}
+#toast.show{opacity:1}
+.empty{text-align:center;padding:26px 10px;color:var(--muted)}
+.tripcard{cursor:pointer}
+.hr{height:1px;background:var(--line);margin:12px 0}
+/* Бренд і лендинг */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 10px}
+.logo{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:22px;letter-spacing:-.02em;color:var(--ink);text-decoration:none;cursor:pointer}
+.logo svg{width:30px;height:30px}
+.land-hero{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center;padding:28px 0 18px}
+.land-hero h1{font-size:46px;line-height:1.05;letter-spacing:-.03em}
+.land-hero h1 em{font-style:normal;color:var(--acc)}
+.lead{font-size:17.5px;color:var(--muted);margin:14px 0 18px;line-height:1.5}
+.feat{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:8px 0}
+.feat .card,.howto .card{margin:0}
+.feat .ic{font-size:26px}
+.howto{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.howto .n{width:30px;height:30px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:inline-flex;align-items:center;justify-content:center;font-weight:800;margin-bottom:6px}
+.section-title{font-size:26px;font-weight:800;margin:34px 2px 12px;letter-spacing:-.02em}
+.mock{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:14px;box-shadow:var(--shadow)}
+.mock .tli{padding:7px 0}
+footer{color:var(--muted);font-size:13px;text-align:center;padding:30px 0 10px}
+@media (max-width:760px){
+  .land-hero{grid-template-columns:1fr;padding-top:10px}
+  .land-hero h1{font-size:34px}
+  .feat,.howto{grid-template-columns:1fr}
+  .mock{display:none}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+<script>
+"use strict";
+/* ---------- Константи ---------- */
+const BRAND="Join";
+const FORMATS={friends:"З друзями 🍻",kids:"З дітьми 👨‍👩‍👧",family:"Сім'єю 🏡",solo:"Соло 🎒",romantic:"Романтична 💑",business:"Бізнес 💼"};
+const INTENSITY={max:"Максимально насичено ⚡",balance:"Баланс ⚖️",relax:"Максимальний релакс 🌴"};
+const BUDGETS={econ:"Економ 💸",mid:"Середній 💳",comfort:"Комфорт ✨",lux:"Люкс 💎"};
+const AREAS=["Центр / старе місто","Біля моря чи пляжу","Тихий район","Біля визначних місць","Біля вокзалу","Біля аеропорту","Нічне життя поруч"];
+const MODES={avia:"✈️ Авіа",train:"🚆 Потяг",transfer:"🚐 Трансфер",bus:"🚌 Автобус",car:"🚗 Авто"};
+const TABS=[["hotel","🏨 Готель"],["logi","🚆 Логістика"],["plan","🗓 План"],["food","🍽 Ресторани"],["shops","🛍 Магазини"],["tips","❗ Важливо"],["people","👥 Учасники"]];
+const KIND_ICON={sight:"🏛",food:"🍽",rest:"🌿",walk:"🚶",shop:"🛍",transfer:"🚕",activity:"🎟",beach:"🏖",museum:"🖼",night:"🌙"};
+const COUNTRIES=["Польща","Італія","Іспанія","Франція","Німеччина","Австрія","Чехія","Угорщина","Хорватія","Чорногорія","Греція","Туреччина","Єгипет","ОАЕ","Португалія","Нідерланди","Швейцарія","Румунія","Болгарія","Грузія","Молдова","Кіпр","Мальта","Словаччина","Словенія","Данія","Швеція","Норвегія","Ісландія","Бельгія","Великобританія","Ірландія","Таїланд","Японія","Шрі-Ланка","Мальдіви","США","Мексика","Україна"];
+const LOGO=`<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#0f766e"/><circle cx="24" cy="32" r="10" fill="none" stroke="#fff" stroke-width="5"/><circle cx="40" cy="32" r="10" fill="none" stroke="#f4a259" stroke-width="5"/></svg>`;
+
+/* ---------- Стан ---------- */
+const S={sb:null,data:null,session:null,uid:null,demo:false,google:false,aiOn:false,
+  view:"loading",trips:[],tripsLoaded:false,listUnsub:null,
+  tripId:null,trip:null,preview:null,tripMissing:false,parts:{},votes:{},notes:[],tab:"hotel",tripUnsub:null,
+  d:{},busy:{},err:{},names:{},wz:null,confirmDel:false,sent:null};
+
+/* ---------- Утиліти ---------- */
+const $app=document.getElementById("app");
+const h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const enc=encodeURIComponent;
+const rid=(n=8)=>Array.from(crypto.getRandomValues(new Uint8Array(n))).map(b=>"abcdefghijkmnpqrstuvwxyz23456789"[b%32]).join("");
+const slug=s=>String(s||"").toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"").slice(0,60)||rid(5);
+const num=(v,d)=>{const n=parseFloat(v);return isFinite(n)?n:d};
+function addDays(ds,n){const d=new Date(ds+"T12:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+function fmtD(ds){if(!ds)return"";try{return new Date(ds+"T12:00:00").toLocaleDateString("uk-UA",{day:"numeric",month:"short"})}catch(e){return ds}}
+function today(){return new Date().toISOString().slice(0,10)}
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2800)}
+function dv(id,def){return S.d[id]!==undefined?S.d[id]:def}
+function place(t){return t.city?`${t.city}, ${t.country}`:t.country}
+function hotelPoint(t){return t.chosenHotel?`${t.chosenHotel.name}, ${place(t)}`:place(t)}
+function endDate(t){return addDays(t.startDate,t.nights)}
+const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
+function tripLink(id){return `${location.origin}${location.pathname}#trip-${id}`}
+
+/* ---------- Посилання на сервіси ---------- */
+function bookingUrl(t,q){return `https://www.booking.com/searchresults.uk.html?ss=${enc(q||place(t))}&checkin=${t.startDate}&checkout=${endDate(t)}&group_adults=${t.adults||2}&group_children=${t.kids||0}&no_rooms=1`}
+function mapsSearch(q){return `https://www.google.com/maps/search/?api=1&query=${enc(q)}`}
+function mapsDir(o,d,mode){return `https://www.google.com/maps/dir/?api=1&origin=${enc(o)}&destination=${enc(d)}&travelmode=${mode}`}
+function gFlights(from,to,d1,d2){return `https://www.google.com/travel/flights?q=${enc(`Flights from ${from} to ${to} on ${d1} through ${d2}`)}`}
+function skyscanner(f,t,d1,d2){const y=d=>d.slice(2).replace(/-/g,"");return `https://www.skyscanner.net/transport/flights/${f.toLowerCase()}/${t.toLowerCase()}/${y(d1)}/${y(d2)}/`}
+
+/* ---------- Шар даних: Supabase ---------- */
+function supaData(sb){
+  const chk=({data,error})=>{if(error)throw{code:"db",message:error.message};return data};
+  const rowToTrip=r=>({...(r.data||{}),id:r.id,members:r.members||[],ownerId:r.owner_id,chosenHotel:r.chosen_hotel||null});
+  const refreshers=new Set();const kick=()=>refreshers.forEach(f=>f());
+  return{
+    watchList(cb){let alive=true;
+      const load=async()=>{const{data,error}=await sb.from("trips").select("*").order("created_at");if(!alive)return;if(error)cb(null,error);else cb(data.map(rowToTrip))};
+      load();refreshers.add(load);
+      const ch=sb.channel("list-"+rid(4)).on("postgres_changes",{event:"*",schema:"public",table:"trips"},load).subscribe();
+      return()=>{alive=false;refreshers.delete(load);sb.removeChannel(ch)}},
+    watchTrip(id,H){let alive=true;
+      const lt=async()=>{const{data,error}=await sb.from("trips").select("*").eq("id",id).maybeSingle();if(alive)H.trip(error?null:data?rowToTrip(data):null)};
+      const lp=async()=>{const{data}=await sb.from("trip_parts").select("name,data").eq("trip_id",id);if(alive&&data)H.parts(Object.fromEntries(data.map(r=>[r.name,r.data])))};
+      const lv=async()=>{const{data}=await sb.from("trip_votes").select("user_id,data").eq("trip_id",id);if(alive&&data)H.votes(Object.fromEntries(data.map(r=>[r.user_id,r.data])))};
+      const ln=async()=>{const{data}=await sb.from("trip_notes").select("*").eq("trip_id",id).order("created_at");if(alive&&data)H.notes(data.map(r=>({id:r.id,uid:r.user_id,section:r.section,text:r.text,createdAt:Date.parse(r.created_at)})))};
+      const all=()=>{lt();lp();lv();ln()};all();refreshers.add(all);
+      const f=`trip_id=eq.${id}`;
+      const ch=sb.channel("trip-"+id+"-"+rid(4))
+        .on("postgres_changes",{event:"*",schema:"public",table:"trips",filter:`id=eq.${id}`},lt)
+        .on("postgres_changes",{event:"*",schema:"public",table:"trip_parts",filter:f},lp)
+        .on("postgres_changes",{event:"*",schema:"public",table:"trip_votes",filter:f},lv)
+        .on("postgres_changes",{event:"*",schema:"public",table:"trip_notes",filter:f},ln)
+        .subscribe();
+      return()=>{alive=false;refreshers.delete(all);sb.removeChannel(ch)}},
+    async preview(id){return chk(await sb.rpc("trip_preview",{code:id}))},
+    async createTrip(t){const{id,members,ownerId,chosenHotel,...data}=t;chk(await sb.from("trips").insert({id,data,members:[S.uid],owner_id:S.uid}));kick()},
+    async setHotel(id,hh){chk(await sb.from("trips").update({chosen_hotel:hh,updated_at:new Date().toISOString()}).eq("id",id));kick()},
+    async deleteTrip(id){chk(await sb.from("trips").delete().eq("id",id));kick()},
+    async joinTrip(code){const ok=chk(await sb.rpc("join_trip",{code}));kick();return ok},
+    async leaveTrip(id){chk(await sb.rpc("leave_trip",{code:id}));kick()},
+    async setPart(id,name,data){chk(await sb.from("trip_parts").upsert({trip_id:id,name,data,updated_at:new Date().toISOString()}));kick()},
+    async setVote(id,data){chk(await sb.from("trip_votes").upsert({trip_id:id,user_id:S.uid,data}));kick()},
+    async addNote(id,n){chk(await sb.from("trip_notes").insert({trip_id:id,user_id:S.uid,section:n.section,text:n.text}));kick()},
+    async delNote(id,nid){chk(await sb.from("trip_notes").delete().eq("id",nid));kick()},
+    async names(ids){const r=chk(await sb.from("profiles").select("id,name").in("id",ids));return Object.fromEntries(r.map(x=>[x.id,x.name||""]))},
+    async setMyName(name){chk(await sb.from("profiles").upsert({id:S.uid,name,updated_at:new Date().toISOString()}))},
+  };
+}
+
+/* ---------- Шар даних: демо (лише цей браузер) ---------- */
+function localData(){
+  let st={trips:{},parts:{},votes:{},notes:{},names:{}};try{st={...st,...JSON.parse(ls.get("join_demo")||"{}")}}catch(e){}
+  const L=new Set(),C=o=>JSON.parse(JSON.stringify(o));
+  const save=()=>{ls.set("join_demo",JSON.stringify(st));setTimeout(()=>L.forEach(f=>f()),0)};
+  return{
+    watchList(cb){const f=()=>cb(Object.values(st.trips).filter(t=>t.members.includes(S.uid)).map(C));L.add(f);setTimeout(f,0);return()=>L.delete(f)},
+    watchTrip(id,H){const f=()=>{const t=st.trips[id];H.trip(t&&t.members.includes(S.uid)?C(t):null);H.parts(C(st.parts[id]||{}));H.votes(C(st.votes[id]||{}));H.notes(C(st.notes[id]||[]))};L.add(f);setTimeout(f,0);return()=>L.delete(f)},
+    async preview(id){const t=st.trips[id];return t?{...C(t),members_count:t.members.length}:null},
+    async createTrip(t){st.trips[t.id]=C(t);save()},
+    async setHotel(id,hh){st.trips[id].chosenHotel=hh;save()},
+    async deleteTrip(id){delete st.trips[id];save()},
+    async joinTrip(id){const t=st.trips[id];if(!t)return false;if(!t.members.includes(S.uid))t.members.push(S.uid);save();return true},
+    async leaveTrip(id){const t=st.trips[id];t.members=t.members.filter(m=>m!==S.uid);save()},
+    async setPart(id,n,d){(st.parts[id]=st.parts[id]||{})[n]=C(d);save()},
+    async setVote(id,d){(st.votes[id]=st.votes[id]||{})[S.uid]=C(d);save()},
+    async addNote(id,n){(st.notes[id]=st.notes[id]||[]).push({id:rid(8),uid:S.uid,...n,createdAt:Date.now()});save()},
+    async delNote(id,nid){st.notes[id]=(st.notes[id]||[]).filter(n=>n.id!==nid);save()},
+    async names(ids){return Object.fromEntries(ids.map(i=>[i,st.names[i]||""]))},
+    async setMyName(name){st.names[S.uid]=name;save()},
+  };
+}
+
+/* ---------- Запис по черзі ---------- */
+const WQ={};
+function write(key,fn){const p=(WQ[key]||Promise.resolve()).catch(()=>{}).then(fn);WQ[key]=p;return p.catch(e=>{console.warn(e);toast("Не вдалося зберегти. Перевірте інтернет і спробуйте ще раз.");throw e})}
+
+/* ---------- Claude через сервер ---------- */
+function parseJSON(t){t=String(t||"").replace(/```json|```/g,"");const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a<0||b<a)throw new Error("no json");return JSON.parse(t.slice(a,b+1))}
+async function askJSON(prompt,tier){
+  if(!S.aiOn)throw{code:"no_ai"};
+  const token=S.session&&S.session.access_token;
+  let r;
+  try{r=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+(token||"")},
+    body:JSON.stringify({tier:tier||"default",prompt:prompt+"\n\nВАЖЛИВО: відповідай ЛИШЕ валідним JSON (без markdown, без пояснень до чи після). Усі тексти — українською мовою."})})}
+  catch(e){throw{code:"network"}}
+  const j=await r.json().catch(()=>({}));
+  if(r.status===401)throw{code:"auth",message:j.error};
+  if(r.status===429)throw{code:"rate_limited"};
+  if(!r.ok)throw{code:"server",message:j.error};
+  try{return parseJSON(j.text)}catch(e){throw{code:"bad_json"}}
+}
+function errText(e){const c=e&&e.code;
+  if(c==="no_ai")return"Генерація доступна після входу на сайт.";
+  if(c==="auth")return"Сесія закінчилась — оновіть сторінку або увійдіть знову.";
+  if(c==="rate_limited")return"Забагато запитів. Спробуйте за кілька хвилин.";
+  if(c==="bad_json")return"Відповідь прийшла в неочікуваному форматі. Натисніть ще раз.";
+  if(c==="network")return"Немає з'єднання з сервером. Перевірте інтернет.";
+  return(e&&e.message)?e.message:"Щось пішло не так. Спробуйте ще раз."}
+async function run(key,fn){if(S.busy[key])return;S.busy[key]=true;S.err[key]=null;render();
+  try{await fn()}catch(e){console.warn(e);S.err[key]=errText(e)}
+  S.busy[key]=false;render()}
+function ctx(t){
+  let s=`Країна: ${t.country}${t.city?`; місто/регіон: ${t.city}`:""}. Дати: ${t.startDate} — ${endDate(t)} (${t.nights} ночей). Мандрівники: ${t.adults} дорослих${t.kids?`, ${t.kids} дітей`:""}. Формат: ${FORMATS[t.format]||t.format}. Рівень бюджету: ${BUDGETS[t.budgetLevel]||""}${t.budgetTotal?`, загальний бюджет ~${t.budgetTotal} EUR на всіх`:""}. Звідки їдуть: ${t.fromCity||"Київ"}, Україна.`;
+  if(t.chosenHotel)s+=` Обраний готель: ${t.chosenHotel.name} (${t.chosenHotel.area||""}${t.chosenHotel.lat?`, координати ${t.chosenHotel.lat},${t.chosenHotel.lng}`:""}).`;
+  return s}
+
+/* ---------- Запуск і вхід ---------- */
+function showFatal(msg){S.view="fatal";S.fatal=msg;render()}
+async function init(){
+  render();
+  setTimeout(()=>{if(S.view==="loading")showFatal("Сайт не може підключитися до бази даних Supabase. Перевірте у Vercel значення SUPABASE_URL (має бути https://xxxx.supabase.co) і SUPABASE_ANON_KEY, потім зробіть Redeploy.")},15000);
+  let cfg=null;try{const ac=new AbortController();setTimeout(()=>ac.abort(),10000);const r=await fetch("/api/config",{cache:"no-store",signal:ac.signal});if(r.ok)cfg=await r.json()}catch(e){}
+  if(cfg&&cfg.supabaseUrl&&!/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)\/?$/i.test(cfg.supabaseUrl.trim())){showFatal(`Неправильне значення SUPABASE_URL у Vercel: «${cfg.supabaseUrl.slice(0,60)}». Має бути адреса виду https://xxxx.supabase.co — без /rest/v1, пробілів і лапок. Виправте і зробіть Redeploy.`);return}
+  if(cfg&&cfg.supabaseUrl&&!cfg.supabaseAnonKey){showFatal("У Vercel не задано SUPABASE_ANON_KEY. Додайте його і зробіть Redeploy.");return}
+  if(cfg&&cfg.supabaseUrl&&!window.supabase){showFatal("Не завантажилась бібліотека Supabase. Оновіть сторінку; якщо не допоможе — вимкніть блокувальник реклами для цього сайту.");return}
+  if(!cfg||!cfg.supabaseUrl||!window.supabase){
+    // Демо-режим: сайт ще не підключено до Supabase (наприклад, відкрито файл локально)
+    S.demo=true;S.data=localData();S.aiOn=false;
+    S.uid=ls.get("join_uid")||("demo-"+rid(6));ls.set("join_uid",S.uid);
+    afterLogin();return;
+  }
+  S.google=!!cfg.google;
+  try{S.sb=window.supabase.createClient(cfg.supabaseUrl.trim(),cfg.supabaseAnonKey.trim(),{auth:{flowType:"pkce",persistSession:true,detectSessionInUrl:true,autoRefreshToken:true}})}
+  catch(e){showFatal("Не вдалося підключитися до Supabase: "+(e&&e.message||e)+". Перевірте SUPABASE_URL і SUPABASE_ANON_KEY у Vercel.");return}
+  S.data=supaData(S.sb);
+  S.sb.auth.onAuthStateChange((ev,sess)=>{
+    S.session=sess;
+    if(sess&&sess.user.id!==S.uid){S.uid=sess.user.id;S.aiOn=true;setTimeout(()=>afterLogin(sess.user),0)}
+    else if(!sess){if(S.uid)teardown();S.uid=null;S.aiOn=false;showLanding()}
+  });
+}
+function showLanding(){
+  const m=(location.hash||"").match(/^#trip-([a-z0-9]+)$/);if(m)ls.set("join_pending",m[1]);
+  S.view="landing";render();
+}
+async function afterLogin(user){
+  try{if(location.search.includes("code=")){history.replaceState(null,"",location.pathname+location.hash)}}catch(e){}
+  if(user&&S.sb){ // профіль з ім'ям
+    try{const{data}=await S.sb.from("profiles").select("name").eq("id",user.id).maybeSingle();
+      if(!data||!data.name){const nmv=(user.user_metadata&&(user.user_metadata.full_name||user.user_metadata.name))||(user.email||"").split("@")[0];await S.data.setMyName(nmv);S.names[user.id]=nmv}
+      else S.names[user.id]=data.name}catch(e){}
+  }
+  if(S.listUnsub)S.listUnsub();
+  S.listUnsub=S.data.watchList((list,err)=>{if(list)S.trips=list.sort((a,b)=>(a.startDate||"").localeCompare(b.startDate||""));S.tripsErr=err?"Не вдалося завантажити подорожі.":null;S.tripsLoaded=true;render()});
+  const m=(location.hash||"").match(/^#trip-([a-z0-9]+)$/);const pending=ls.get("join_pending");ls.set("join_pending",null);
+  if(m)openTrip(m[1]);else if(pending)openTrip(pending);else{S.view="home";render()}
+}
+function teardown(){if(S.listUnsub)S.listUnsub();S.listUnsub=null;if(S.tripUnsub)S.tripUnsub();S.tripUnsub=null;S.trips=[];S.tripsLoaded=false;S.trip=null;S.names={}}
+function openTrip(id){
+  if(S.tripUnsub)S.tripUnsub();
+  Object.assign(S,{tripId:id,trip:null,preview:null,tripMissing:false,parts:{},votes:{},notes:[],view:"trip",confirmDel:false});
+  try{if(location.hash!=="#trip-"+id)location.hash="trip-"+id}catch(e){}
+  let first=true;
+  S.tripUnsub=S.data.watchTrip(id,{
+    trip:t=>{S.trip=t;if(t){S.tripMissing=false;loadNames(t.members||[])}
+      else if(first){S.data.preview(id).then(p=>{S.preview=p;S.tripMissing=!p;render()}).catch(()=>{S.tripMissing=true;render()})}
+      first=false;render()},
+    parts:p=>{S.parts=p;render()},votes:v=>{S.votes=v;render()},
+    notes:n=>{S.notes=n.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));loadNames(n.map(x=>x.uid));render()}});
+  render();window.scrollTo(0,0);
+}
+function goHome(){if(S.tripUnsub)S.tripUnsub();S.tripUnsub=null;S.view="home";S.tripId=null;S.trip=null;try{history.replaceState(null,"",location.pathname)}catch(e){}render();window.scrollTo(0,0)}
+async function loadNames(ids){
+  const miss=[...new Set(ids)].filter(i=>i&&!(i in S.names));if(!miss.length)return;
+  miss.forEach(i=>S.names[i]="");
+  try{const r=await S.data.names(miss);Object.assign(S.names,r);render()}catch(e){}
+}
+const nm=id=>id===S.uid?"Ви":(S.names[id]||"Учасник");
+
+/* ---------- Рендер ---------- */
+function render(){
+  const ae=document.activeElement,fid=ae&&ae.id;let sel=null;try{sel=[ae.selectionStart,ae.selectionEnd]}catch(e){}
+  $app.className=S.view==="landing"?"wide":"";
+  $app.innerHTML=S.view==="fatal"?`${topbar()}<div class="card"><h3>⚠️ Сайт не налаштовано до кінця</h3><p>${h(S.fatal)}</p></div>`:S.view==="landing"?vLanding():S.view==="home"?vHome():S.view==="wizard"?vWizard():S.view==="trip"?vTrip():`<div class="empty" style="padding-top:30vh">${LOGO.replace("<svg",'<svg style="width:46px;height:46px"')}<p>${spin("Завантаження…")}</p></div>`;
+  if(fid){const el=document.getElementById(fid);if(el&&el!==document.activeElement){el.focus({preventScroll:true});try{if(sel&&sel[0]!=null)el.setSelectionRange(sel[0],sel[1])}catch(e){}}}
+}
+const spin=t=>`<span class="spin"></span> ${t}`;
+const errBox=k=>S.err[k]?`<div class="notice">${h(S.err[k])}</div>`:"";
+const aiOff=()=>S.aiOn?"":`<div class="notice">${S.demo?"Демо-режим: генерація запрацює після запуску сайту на сервері (див. інструкцію).":"Увійдіть, щоб користуватися генерацією."}</div>`;
+const topbar=(right)=>`<div class="topbar"><a class="logo" data-a="${S.uid?"home":"top"}">${LOGO}${BRAND}</a><div class="row">${right||""}</div></div>`;
+
+/* ----- Лендинг ----- */
+function vLanding(){
+  const pending=ls.get("join_pending");
+  const signin=S.sent?`<div class="card"><h3>📬 Перевірте пошту</h3><p class="muted">Ми надіслали посилання для входу на <b>${h(S.sent)}</b>. Відкрийте лист і натисніть посилання — ви повернетесь сюди вже в акаунті.</p><div class="btns"><button data-a="resetSent">Інша адреса</button></div></div>`
+   :`<div class="card" id="signin"><h3>${pending?"Вас запросили в подорож 🎉":"Увійти або зареєструватися"}</h3>
+     <p class="muted">${pending?"Увійдіть, щоб приєднатися до друзів.":"Без паролів — надішлемо посилання на пошту."}</p>
+     <label for="email">Email</label><input id="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" value="${h(dv("email",""))}">
+     <button class="primary big" style="margin-top:10px" data-a="signIn" ${S.busy.auth?"disabled":""}>${S.busy.auth?spin("Надсилаю…"):"Отримати посилання для входу"}</button>
+     ${S.google?`<button class="big" style="margin-top:8px" data-a="google">Увійти через Google</button>`:""}
+     ${errBox("auth")}</div>`;
+  const mock=`<div class="mock"><div class="row between"><b>🗓 День 2 · Барселона</b><span class="badge">17 груд.</span></div>
+    <div class="tl" style="margin-top:6px">
+     <div class="tli"><div class="t">10:00</div><div><b>🏛 Саграда Фамілія</b><p class="muted">Квитки заздалегідь, вхід з боку фасаду Різдва</p></div></div>
+     <div class="tli"><div class="t">13:30</div><div><b>🍽 Обід у Gràcia</b><p class="muted">Тапас і місцеве вино</p></div></div>
+     <div class="tli"><div class="t">16:00</div><div><b>🌿 Парк Гуель</b><p class="muted">Захід сонця з видом на місто</p></div></div>
+     <div class="tli"><div class="t">19:30</div><div><b>🌙 Вечеря в Борні</b><p class="muted">❤️ 3 учасники зберегли</p></div></div></div></div>`;
+  const F=[["🏨","Готелі","Підбірка під ваш бюджет і район, закладки та остаточний вибір разом з друзями."],["🚆","Логістика","Авіа, потяг, автобус, трансфер чи авто — варіанти та посилання на розклади."],["🗓","План на кожен день","З 10:00 до 21:00 під формат і темп поїздки. Уточнюйте своїми словами."],["🍽","Ресторани","Заклади з високим рейтингом поруч із готелем і маршрутом."],["🛍","Магазини","Унікальні крамниці, ринки та локальні бренди."],["❗","Важливо знати","Безпека, штрафи, історія, етикет і поради для українців."]];
+  return `${topbar(`<button class="primary" data-a="toSignin">Увійти</button>`)}
+  <section class="land-hero"><div>
+    <h1>Плануйте подорожі <em>разом</em>.</h1>
+    <p class="lead">Join збирає все в одному місці: готель, дорогу, план на кожен день, ресторани й поради. Створіть поїздку, запросіть друзів і вирішуйте разом.</p>
+    ${signin}
+  </div>${mock}</section>
+  <div class="section-title">Усе для поїздки</div>
+  <div class="feat">${F.map(f=>`<div class="card"><div class="ic">${f[0]}</div><h3 style="margin-top:6px">${f[1]}</h3><p class="muted">${f[2]}</p></div>`).join("")}</div>
+  <div class="section-title">Як це працює</div>
+  <div class="howto">
+    <div class="card"><span class="n">1</span><h3>Створіть подорож</h3><p class="muted">Країна, дати, бюджет і формат — чотири короткі кроки.</p></div>
+    <div class="card"><span class="n">2</span><h3>Запросіть друзів</h3><p class="muted">Надішліть посилання — усі бачать план і можуть пропонувати.</p></div>
+    <div class="card"><span class="n">3</span><h3>Вирішуйте разом</h3><p class="muted">Зберігайте варіанти ❤️, обирайте готель і налаштовуйте план.</p></div>
+  </div>
+  <footer>© ${new Date().getFullYear()} ${BRAND} · Плануйте подорожі разом</footer>`;
+}
+
+/* ----- Головна (мої подорожі) ----- */
+function vHome(){
+  const list=!S.tripsLoaded?`<div class="empty">${spin("Завантажую подорожі…")}</div>`
+   :S.trips.length?S.trips.map(t=>`<div class="card tripcard" data-a="open" data-v="${h(t.id)}">
+      <div class="row between"><h3>${h(t.title)}</h3><span class="badge">${h(fmtD(t.startDate))} – ${h(fmtD(endDate(t)))}</span></div>
+      <p class="muted">${h(t.country)} · ${t.nights} ноч. · ${h(FORMATS[t.format]||"")} · 👥 ${(t.members||[]).length}</p>
+      ${t.chosenHotel?`<p class="small">🏨 ${h(t.chosenHotel.name)}</p>`:""}</div>`).join("")
+   :`<div class="empty"><div style="font-size:42px">🧳</div><p>Ще немає подорожей.<br>Створіть першу!</p></div>`;
+  return `${topbar(S.demo?`<span class="badge warm">демо</span>`:`<button class="ghost small" data-a="logout">Вийти</button>`)}
+  <div class="card hero">
+    <h1>Куди далі? ✈️</h1>
+    <p class="muted">Створіть подорож і запросіть друзів — плануйте разом.</p>
+    <button class="big" style="margin-top:12px;background:#fff;color:#0f766e;border:none" data-a="newTrip">＋ Нова подорож</button>
+  </div>
+  ${S.demo?`<div class="notice">Демо-режим: дані зберігаються лише в цьому браузері. Після запуску сайту на сервері з'являться вхід, спільні подорожі та генерація.</div>`:""}
+  ${S.tripsErr?`<div class="notice">${h(S.tripsErr)}</div>`:""}
+  <h2 style="margin:18px 2px 4px">Мої подорожі</h2>
+  ${list}
+  <div class="card">
+    <h3>Приєднатися за кодом</h3>
+    <p class="muted">Або просто відкрийте посилання-запрошення від друга.</p>
+    <div class="row" style="margin-top:8px"><input id="joinCode" placeholder="Код подорожі" value="${h(dv("joinCode",""))}" autocapitalize="off" autocomplete="off"><button class="primary" data-a="join">Ок</button></div>
+  </div>`;
+}
+
+/* ----- Майстер створення ----- */
+function chips(field,map,cur,act="wz"){return `<div class="chips">${Object.entries(map).map(([k,v])=>`<button class="chip ${cur===k?"sel":""}" data-a="${act}" data-v="${field}:${k}">${h(v)}</button>`).join("")}</div>`}
+function vWizard(){
+  const w=S.wz,st=w.step;
+  const bar=`<div class="steps">${[0,1,2,3].map(i=>`<i class="${i<=st?"done":""}"></i>`).join("")}</div>`;
+  let body="";
+  if(st===0){body=`<h2>Куди їдемо?</h2>
+    <label for="wzCountry">Країна</label>
+    <input id="wzCountry" list="countries" placeholder="Почніть вводити…" value="${h(dv("wzCountry",""))}">
+    <datalist id="countries">${COUNTRIES.map(c=>`<option value="${h(c)}">`).join("")}</datalist>
+    <label for="wzCity">Місто або регіон <span class="muted">(можна пізніше)</span></label>
+    <input id="wzCity" placeholder="Напр. Барселона" value="${h(dv("wzCity",""))}">
+    ${S.aiOn?`<div class="btns"><button data-a="suggestCity" ${S.busy.city?"disabled":""}>${S.busy.city?spin("Думаю…"):"✨ Порадь місто"}</button></div>`:""}
+    ${errBox("city")}
+    ${(w.sug||[]).length?`<div class="col" style="margin-top:8px">${w.sug.map((c,i)=>`<button class="ghost" style="justify-content:flex-start;text-align:left;flex-direction:column;align-items:flex-start" data-a="pickCity" data-v="${i}"><b>${h(c.name)}</b><span class="muted" style="font-weight:500">${h(c.why)}</span></button>`).join("")}</div>`:""}`}
+  if(st===1){body=`<h2>Коли і хто?</h2>
+    <label for="wzStart">Дата початку</label><input id="wzStart" type="date" min="${today()}" value="${h(dv("wzStart",addDays(today(),30)))}">
+    <label for="wzNights">Скільки ночей</label><input id="wzNights" type="number" min="1" max="30" inputmode="numeric" value="${h(dv("wzNights","5"))}">
+    <div class="row"><div class="grow"><label for="wzAdults">Дорослі</label><input id="wzAdults" type="number" min="1" max="20" inputmode="numeric" value="${h(dv("wzAdults","2"))}"></div>
+    <div class="grow"><label for="wzKids">Діти</label><input id="wzKids" type="number" min="0" max="10" inputmode="numeric" value="${h(dv("wzKids","0"))}"></div></div>
+    <label for="wzFrom">Звідки виїжджаєте</label><input id="wzFrom" placeholder="Напр. Київ" value="${h(dv("wzFrom","Київ"))}">`}
+  if(st===2){body=`<h2>Який бюджет?</h2>
+    <label>Рівень</label>${chips("budgetLevel",BUDGETS,w.budgetLevel)}
+    <label for="wzBudget">Загальний бюджет на всіх, €</label><input id="wzBudget" type="number" min="0" inputmode="numeric" placeholder="Напр. 1500" value="${h(dv("wzBudget",""))}">
+    <p class="muted">Приблизно — це допоможе підібрати готелі й ресторани.</p>`}
+  if(st===3){body=`<h2>Тип поїздки</h2><label>Формат</label>${chips("format",FORMATS,w.format)}
+    <label>Інтенсивність</label>${chips("intensity",INTENSITY,w.intensity)}`}
+  return `${topbar()}<div class="row between"><button class="ghost" data-a="${st?"wzBack":"home"}">← ${st?"Назад":"Скасувати"}</button><span class="muted">Крок ${st+1} з 4</span></div>
+  ${bar}<div class="card">${body}</div>
+  <button class="primary big" data-a="wzNext" ${S.busy.create?"disabled":""}>${S.busy.create?spin("Створюю…"):st<3?"Далі →":"Створити подорож 🎉"}</button>${errBox("create")}`;
+}
+
+/* ----- Подорож ----- */
+function tripHead(t){return `<div class="card hero" style="margin-top:8px"><h1 style="font-size:23px">${h(t.title||t.city||t.country)}</h1>
+   <p class="muted">${h(t.country)} · ${h(fmtD(t.startDate))} – ${h(fmtD(endDate(t)))} · ${t.nights} ноч. · ${t.adults} дор.${t.kids?` + ${t.kids} діт.`:""}</p>
+   <p class="muted">${h(FORMATS[t.format]||"")} · ${h(BUDGETS[t.budgetLevel]||"")}${t.budgetTotal?` · ~€${h(t.budgetTotal)}`:""} · 👥 ${t.members?t.members.length:(t.members_count||1)}</p></div>`}
+function vTrip(){
+  const t=S.trip,back=`${topbar()}<button class="ghost" data-a="home">← Мої подорожі</button>`;
+  if(!t){
+    if(S.preview)return back+tripHead(S.preview)+`<div class="card"><h3>Вас запросили в цю подорож 🎉</h3><p class="muted">Приєднайтеся, щоб бачити план, обирати готель і вносити пропозиції.</p><button class="primary big" data-a="joinThis" ${S.busy.join?"disabled":""}>${S.busy.join?spin("Приєдную…"):"Приєднатися"}</button>${errBox("join")}</div>`;
+    return back+(S.tripMissing?`<div class="empty"><div style="font-size:40px">🔎</div><p>Подорож не знайдено або посилання застаріло.</p></div>`:`<div class="empty">${spin("Завантажую…")}</div>`);
+  }
+  const tabs=`<div class="tabs">${TABS.map(([k,v])=>`<button class="tab ${S.tab===k?"sel":""}" data-a="tab" data-v="${k}">${v}</button>`).join("")}</div>`;
+  const body={hotel:tHotel,logi:tLogi,plan:tPlan,food:tFood,shops:tShops,tips:tTips,people:tPeople}[S.tab](t);
+  return back+tripHead(t)+tabs+body+(S.tab!=="people"?notesBlock(S.tab):"");
+}
+
+/* Закладки */
+function mine(kind){return((S.votes[S.uid]||{})[kind])||[]}
+function cnt(kind,id){return Object.values(S.votes).filter(v=>(v[kind]||[]).includes(id)).length}
+function saveBtn(kind,id){const on=mine(kind).includes(id),c=cnt(kind,id);return `<button class="${on?"on":""}" data-a="save" data-v="${kind}|${h(id)}" title="Зберегти">${on?"❤️":"🤍"} ${c||""}</button>`}
+
+/* Схема-мапа */
+function miniMap(pts,kind){
+  const t=S.trip;const P=pts.map((p,i)=>({...p,n:i+1})).filter(p=>isFinite(num(p.lat))&&isFinite(num(p.lng)));
+  const H=t.chosenHotel&&isFinite(num(t.chosenHotel.lat))?{lat:num(t.chosenHotel.lat),lng:num(t.chosenHotel.lng),hotel:true}:null;
+  const all=H?[...P,H]:P;if(all.length<2)return"";
+  const lats=all.map(p=>num(p.lat)),lngs=all.map(p=>num(p.lng));
+  const lat0=(Math.min(...lats)+Math.max(...lats))/2,k=Math.cos(lat0*Math.PI/180);
+  const xs=lngs.map(l=>l*k),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...lats),maxY=Math.max(...lats);
+  const W=360,HH=230,pad=22,sx=(W-2*pad)/Math.max(maxX-minX,1e-4),sy=(HH-2*pad)/Math.max(maxY-minY,1e-4),s=Math.min(sx,sy);
+  const ox=(W-(maxX-minX)*s)/2,oy=(HH-(maxY-minY)*s)/2;
+  const X=p=>ox+(num(p.lng)*k-minX)*s,Y=p=>oy+(maxY-num(p.lat))*s;
+  const km=((maxX-minX)*111).toFixed(1);
+  let g="";for(let i=1;i<6;i++){g+=`<line x1="${i*W/6}" y1="0" x2="${i*W/6}" y2="${HH}" stroke="currentColor" opacity=".07"/>`;if(i<4)g+=`<line x1="0" y1="${i*HH/4}" x2="${W}" y2="${i*HH/4}" stroke="currentColor" opacity=".07"/>`}
+  const dots=P.map(p=>`<g data-a="jump" data-v="${kind}-${p.n-1}" style="cursor:pointer"><circle cx="${X(p).toFixed(1)}" cy="${Y(p).toFixed(1)}" r="11" fill="var(--warm)" stroke="var(--card)" stroke-width="2"/><text x="${X(p).toFixed(1)}" y="${(Y(p)+4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">${p.n}</text></g>`).join("");
+  const hd=H?`<g><rect x="${(X(H)-13).toFixed(1)}" y="${(Y(H)-13).toFixed(1)}" width="26" height="26" rx="7" fill="var(--acc)" stroke="var(--card)" stroke-width="2"/><text x="${X(H).toFixed(1)}" y="${(Y(H)+5).toFixed(1)}" text-anchor="middle" font-size="14">🏨</text></g>`:"";
+  return `<svg class="map" viewBox="0 0 ${W} ${HH}" role="img" aria-label="Схема розташування" style="color:var(--ink)">${g}${dots}${hd}</svg>
+  <p class="muted small" style="margin-top:4px">Схема розташування (≈${km} км по ширині)${H?" · 🏨 — ваш готель":""}. Натисніть номер, щоб перейти до місця.</p>`;
+}
+
+/* ----- Готель ----- */
+function tHotel(t){
+  const p=S.parts.hotels||{},prefs=p.prefs||{};
+  const defNight=t.budgetTotal?Math.max(20,Math.round((num(t.budgetTotal,0)*0.45)/Math.max(1,t.nights))):({econ:50,mid:90,comfort:150,lux:300}[t.budgetLevel]||90);
+  const areas=S.d.hAreas||prefs.areas||[];
+  const chosen=t.chosenHotel?`<div class="card" style="border-color:var(--acc)"><span class="badge">✅ Обраний готель</span>
+    <h3 style="margin-top:6px">${h(t.chosenHotel.name)}</h3><p class="muted">${h(t.chosenHotel.area||"")}${t.chosenHotel.pricePerNight?` · ~€${h(t.chosenHotel.pricePerNight)}/ніч`:""}</p>
+    <div class="btns"><a class="btn primary" target="_blank" rel="noopener" href="${bookingUrl(t,t.chosenHotel.name+", "+place(t))}">Бронювати на Booking ↗</a>
+    <a class="btn" target="_blank" rel="noopener" href="${mapsSearch(hotelPoint(t))}">Мапа ↗</a><button class="ghost danger" data-a="unchoose">Скасувати вибір</button></div></div>`:"";
+  const items=p.items||[];
+  const list=items.length?`<div class="card"><h3>Підбірка готелів</h3>${p.areaAdvice?`<p>${h(p.areaAdvice)}</p>`:""}${miniMap(items,"hotel")}</div>
+   ${items.map((x,i)=>{const id=slug(x.name),isC=t.chosenHotel&&t.chosenHotel.name===x.name;return `<div class="card" id="it-hotel-${i}">
+     <div class="row between"><h3>${i+1}. ${h(x.name)}</h3>${x.stars?`<span class="badge warm">${"★".repeat(Math.min(5,Math.round(num(x.stars,0))))}</span>`:""}</div>
+     <p class="muted">${h(x.area||"")}${x.pricePerNight?` · ~€${h(x.pricePerNight)}/ніч`:""}${x.rating?` · оцінка ~${h(x.rating)}`:""}</p>
+     <p>${h(x.why||"")}</p>
+     <div class="btns">${saveBtn("hotels",id)}
+      <button class="${isC?"primary":""}" data-a="choose" data-v="${i}">${isC?"✅ Обрано":"Обрати"}</button>
+      <a class="btn" target="_blank" rel="noopener" href="${bookingUrl(t,x.name+", "+place(t))}">Booking ↗</a>
+      <a class="btn" target="_blank" rel="noopener" href="${mapsSearch(x.name+", "+place(t))}">Мапа ↗</a></div></div>`}).join("")}
+   <p class="muted small">Підбірку робить AI на основі власних знань: ціни та оцінки орієнтовні. Актуальні ціни й наявність перевіряйте на Booking.</p>`:"";
+  return `${chosen}
+  <div class="card"><h3>${items.length?"Уточнити підбірку":"Підберемо готель"}</h3>
+   <label for="hNight">Бюджет за ніч (за номер), €</label><input id="hNight" type="number" inputmode="numeric" value="${h(dv("hNight",prefs.perNight||defNight))}">
+   <label>Розташування</label><div class="chips">${AREAS.map(a=>`<button class="chip ${areas.includes(a)?"sel":""}" data-a="hArea" data-v="${h(a)}">${h(a)}</button>`).join("")}</div>
+   <label for="hWish">Інші побажання</label><input id="hWish" placeholder="Напр. басейн, сніданок, парковка" value="${h(dv("hWish",prefs.wish||""))}">
+   <div class="btns"><button class="primary" data-a="genHotels" ${S.busy.hotels||!S.aiOn?"disabled":""}>${S.busy.hotels?spin("Підбираю…"):"✨ Підібрати готелі"}</button>
+   <a class="btn" target="_blank" rel="noopener" href="${bookingUrl(t)}">Усі варіанти на Booking ↗</a></div>
+   ${errBox("hotels")}${aiOff()}</div>${list}`;
+}
+
+/* ----- Логістика ----- */
+function tLogi(t){
+  const p=S.parts.logistics||{},mode=S.d.logMode||p.mode||"avia",res=(p.results||{})[mode];
+  const from=dv("lFrom",p.from||t.fromCity||"Київ"),dest=hotelPoint(t),d1=t.startDate,d2=endDate(t);
+  const arrive=(res&&res.fromPoint)||("аеропорт "+(t.city||t.country));
+  let links="";
+  if(mode==="avia"){const fa=res&&res.airports&&res.airports.from&&res.airports.from[0],ta=res&&res.airports&&res.airports.to&&res.airports.to[0];
+    links=`<a class="btn primary" target="_blank" rel="noopener" href="${gFlights(fa||from,ta||(t.city||t.country),d1,d2)}">Google Flights ↗</a>${fa&&ta&&/^[A-Za-z]{3}$/.test(fa)&&/^[A-Za-z]{3}$/.test(ta)?`<a class="btn" target="_blank" rel="noopener" href="${skyscanner(fa,ta,d1,d2)}">Skyscanner ${h(fa)}→${h(ta)} ↗</a>`:""}`}
+  if(mode==="train")links=`<a class="btn primary" target="_blank" rel="noopener" href="https://booking.uz.gov.ua/">Розклад і квитки Укрзалізниці ↗</a><a class="btn" target="_blank" rel="noopener" href="${mapsDir(from,dest,"transit")}">Маршрут у Google Maps ↗</a>`;
+  if(mode==="transfer")links=`<a class="btn primary" target="_blank" rel="noopener" href="${mapsDir(arrive,dest,"transit")}">Громадським транспортом ↗</a><a class="btn" target="_blank" rel="noopener" href="${mapsDir(arrive,dest,"driving")}">Таксі / трансфер ↗</a>`;
+  if(mode==="bus")links=`<a class="btn primary" target="_blank" rel="noopener" href="https://www.flixbus.com.ua/">Розклад FlixBus ↗</a><a class="btn" target="_blank" rel="noopener" href="${mapsDir(from,dest,"transit")}">Маршрут у Google Maps ↗</a>`;
+  if(mode==="car")links=`<a class="btn primary" target="_blank" rel="noopener" href="${mapsDir(from,dest,"driving")}">Маршрут авто в Google Maps ↗</a>`;
+  const out=res?`<div class="card"><h3>${MODES[mode]}: ${h(from)} → ${h(t.city||t.country)}</h3>${res.summary?`<p>${h(res.summary)}</p>`:""}
+    ${(res.options||[]).map(o=>`<div class="hr"></div><b>${h(o.title)}</b><p>${h(o.details||"")}</p><p class="muted">${o.duration?`⏱ ${h(o.duration)} `:""}${o.price?` · 💶 ${h(o.price)}`:""}</p>${o.tip?`<p class="small">💡 ${h(o.tip)}</p>`:""}`).join("")}
+    <div class="btns">${links}</div><p class="muted small" style="margin-top:8px">Час і ціни орієнтовні — актуальний розклад дивіться за посиланнями.</p></div>`
+    :`<div class="card"><p class="muted">Натисніть «Показати варіанти», і AI розпише, як краще дістатися. Посилання на розклади вже працюють:</p><div class="btns">${links}</div></div>`;
+  return `<div class="card"><h3>Як добираємось?</h3>
+   <label for="lFrom">Звідки</label><input id="lFrom" value="${h(from)}">
+   <label>Спосіб</label><div class="chips">${Object.entries(MODES).map(([k,v])=>`<button class="chip ${mode===k?"sel":""}" data-a="logMode" data-v="${k}">${v}</button>`).join("")}</div>
+   ${mode==="transfer"||mode==="car"?`<p class="muted small" style="margin-top:8px">Пункт призначення: ${t.chosenHotel?"ваш обраний готель":"центр міста (оберіть готель для точнішого маршруту)"}.</p>`:""}
+   <div class="btns"><button class="primary" data-a="genLogi" ${S.busy.logi||!S.aiOn?"disabled":""}>${S.busy.logi?spin("Шукаю варіанти…"):"✨ Показати варіанти"}</button></div>
+   ${errBox("logi")}${aiOff()}</div>${out}`;
+}
+
+/* ----- План ----- */
+function tPlan(t){
+  const p=S.parts.plan||{},st=p.settings||{},has=(p.days||[]).length>0;
+  const days=dv("pDays",String(st.days||Math.min(14,t.nights+1)));
+  const fmt=S.d.pFormat||st.format||t.format,int=S.d.pInt||st.intensity||t.intensity||"balance";
+  const plan=has?`${p.note?`<div class="card"><p>${h(p.note)}</p></div>`:""}${p.days.map(d=>`<div class="card"><div class="row between"><h3>День ${h(d.day)}${d.theme?` · ${h(d.theme)}`:""}</h3>${d.date?`<span class="badge">${h(fmtD(d.date))}</span>`:""}</div>
+     <div class="tl" style="margin-top:6px">${(d.items||[]).map(it=>`<div class="tli"><div class="t">${h(it.time||"")}${it.end?`<small>–${h(it.end)}</small>`:""}</div>
+       <div class="grow"><div class="row"><span class="kind">${KIND_ICON[it.kind]||"📍"}</span><b>${h(it.title)}</b></div><p style="opacity:.85">${h(it.desc||"")}</p>
+       ${it.place?`<a class="small" target="_blank" rel="noopener" href="${mapsSearch(it.place+", "+place(t))}">📍 ${h(it.place)} ↗</a>`:""}</div></div>`).join("")}</div></div>`).join("")}
+     ${(p.requests||[]).length?`<p class="muted small">Враховані уточнення: ${p.requests.map(h).join(" · ")}</p>`:""}
+     <div class="card"><h3>Уточнити план</h3><p class="muted">Напишіть, що змінити — AI перебудує план.</p>
+      <textarea id="pRefine" placeholder="Напр.: у 2-й день більше музеїв; вечеря біля моря; без ранніх підйомів">${h(dv("pRefine",""))}</textarea>
+      <div class="btns"><button class="primary" data-a="refinePlan" ${S.busy.plan||!S.aiOn?"disabled":""}>${S.busy.plan?spin("Перебудовую…"):"✨ Оновити план"}</button></div>${errBox("plan")}</div>`:"";
+  return `<div class="card"><h3>${has?"Налаштування плану":"Створимо план поїздки"}</h3>
+   <label for="pDays">Скільки днів</label><input id="pDays" type="number" min="1" max="14" inputmode="numeric" value="${h(days)}">
+   <label>Формат</label>${chips("pFormat",FORMATS,fmt,"pset")}
+   <label>Інтенсивність</label>${chips("pInt",INTENSITY,int,"pset")}
+   <p class="muted small" style="margin-top:8px">План на кожен день з 10:00 до 21:00${t.chosenHotel?`, від готелю ${h(t.chosenHotel.name)}`:""}.</p>
+   <div class="btns"><button class="primary" data-a="genPlan" ${S.busy.plan||!S.aiOn?"disabled":""}>${S.busy.plan?spin("Складаю план…"):has?"✨ Скласти заново":"✨ Скласти план"}</button></div>
+   ${has?"":errBox("plan")}${aiOff()}</div>${plan}`;
+}
+
+/* ----- Ресторани / Магазини ----- */
+function placesTab(t,key,title,btn){
+  const p=S.parts[key]||{},items=p.items||[];
+  const head=`<div class="card"><h3>${title}</h3><p class="muted">${t.chosenHotel?`Поруч із готелем ${h(t.chosenHotel.name)}`:"Оберіть готель — і підбірка буде поруч із ним. Поки шукаю по місту"}${(S.parts.plan||{}).days?" та з урахуванням вашого плану":""}.</p>
+   <label for="${key}Wish">Побажання</label><input id="${key}Wish" placeholder="${key==="food"?"Напр. місцева кухня, без м'яса, з видом":"Напр. вінтаж, сувеніри ручної роботи"}" value="${h(dv(key+"Wish",p.wish||""))}">
+   <div class="btns"><button class="primary" data-a="gen" data-v="${key}" ${S.busy[key]||!S.aiOn?"disabled":""}>${S.busy[key]?spin("Шукаю…"):items.length?"✨ Оновити підбірку":btn}</button></div>${errBox(key)}${aiOff()}</div>`;
+  if(!items.length)return head;
+  return head+`<div class="card">${miniMap(items,key)}</div>`+items.map((x,i)=>{const id=slug(x.name);return `<div class="card" id="it-${key}-${i}">
+    <div class="row between"><h3>${i+1}. ${h(x.name)}</h3>${x.price?`<span class="badge warm">${h(x.price)}</span>`:x.rating?`<span class="badge">★ ${h(x.rating)}</span>`:""}</div>
+    <p class="muted">${h(x.cuisine||x.type||"")}${x.rating&&x.price?` · ★ ~${h(x.rating)}`:""}${x.near?` · ${h(x.near)}`:""}</p><p>${h(x.desc||"")}</p>
+    <div class="btns">${saveBtn(key,id)}<a class="btn" target="_blank" rel="noopener" href="${mapsSearch(x.name+", "+place(t))}">Google Maps ↗</a></div></div>`}).join("")
+    +`<p class="muted small">Підбірка від AI на основі його знань — перевіряйте години роботи й актуальний рейтинг у Google Maps.</p>`;
+}
+const tFood=t=>placesTab(t,"food","Ресторани з високим рейтингом","✨ Знайти ресторани");
+const tShops=t=>placesTab(t,"shops","Цікаві магазини","✨ Знайти магазини");
+
+/* ----- Важливо ----- */
+function tTips(t){
+  const p=S.parts.tips||{},has=(p.sections||[]).length>0;
+  return `<div class="card"><h3>Що варто знати</h3><p class="muted">Безпека, штрафи, місця, які варто побачити, факти з історії та корисні дрібниці.</p>
+   <div class="btns"><button class="primary" data-a="genTips" ${S.busy.tips||!S.aiOn?"disabled":""}>${S.busy.tips?spin("Збираю поради…"):has?"✨ Оновити поради":"✨ Отримати поради"}</button></div>${errBox("tips")}${aiOff()}</div>
+   ${(p.sections||[]).map(s=>`<div class="card tipsec"><h3>${h(s.icon||"📌")} ${h(s.title)}</h3><ul>${(s.items||[]).map(i=>`<li>${h(i)}</li>`).join("")}</ul></div>`).join("")}
+   ${has?`<p class="muted small">Правила й штрафи можуть змінюватися — перед поїздкою звірте з офіційними джерелами.</p>`:""}`;
+}
+
+/* ----- Учасники ----- */
+function tPeople(t){
+  const isOwner=t.ownerId===S.uid,link=tripLink(t.id);
+  return `<div class="card"><h3>Учасники</h3>${(t.members||[]).map(m=>`<div class="row between note"><span>👤 ${h(m===S.uid?(S.names[m]||"Ви")+" (ви)":nm(m))}</span>${m===t.ownerId?`<span class="badge">організатор</span>`:""}</div>`).join("")}</div>
+  <div class="card"><h3>Запросити друзів</h3>
+   <p class="muted">Надішліть посилання — друг увійде через email і одразу потрапить у цю подорож.</p>
+   <input readonly id="inviteLink" value="${h(link)}" onclick="this.select()" style="margin-top:8px">
+   <div class="btns"><button class="primary" data-a="share">Поділитися посиланням</button><button data-a="copy" data-v="${h(link)}">Скопіювати</button></div>
+   <p class="muted small" style="margin-top:10px">Код подорожі: <b>${h(t.id)}</b></p></div>
+  <div class="card"><h3>Ваше ім'я</h3><p class="muted">Так вас бачать інші учасники.</p>
+   <div class="row" style="margin-top:8px"><input id="myName" maxlength="60" value="${h(dv("myName",S.names[S.uid]||""))}"><button class="primary" data-a="saveName">Зберегти</button></div></div>
+  <div class="card"><h3>Керування</h3><div class="btns">
+   ${isOwner?(S.confirmDel?`<button class="danger" data-a="delTrip">Так, видалити назавжди</button><button data-a="noDel">Ні</button>`:`<button class="danger ghost" data-a="askDel">Видалити подорож</button>`):`<button class="danger ghost" data-a="leave">Вийти з подорожі</button>`}
+  </div></div>`;
+}
+
+/* ----- Пропозиції ----- */
+function notesBlock(sec){
+  const ns=S.notes.filter(n=>n.section===sec);
+  return `<div class="card"><h3>💬 Пропозиції учасників</h3>
+   ${ns.length?ns.map(n=>`<div class="note"><div class="row between"><b class="small">${h(nm(n.uid))}</b><span class="muted small">${new Date(n.createdAt||0).toLocaleString("uk-UA",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}${n.uid===S.uid?` · <a href="#" data-a="delNote" data-v="${h(n.id)}">видалити</a>`:""}</span></div><p>${h(n.text)}</p></div>`).join(""):`<p class="muted">Поки порожньо. Запропонуйте щось команді!</p>`}
+   <div class="row" style="margin-top:8px"><input id="note-${sec}" placeholder="Ваша пропозиція…" value="${h(dv("note-"+sec,""))}"><button class="primary" data-a="addNote" data-v="${sec}" aria-label="Надіслати">➤</button></div></div>`;
+}
+
+/* ---------- Генерація ---------- */
+async function genHotels(){
+  const t=S.trip,prefs=(S.parts.hotels||{}).prefs||{};
+  const perNight=num(S.d.hNight,null)||num(prefs.perNight,90),areas=S.d.hAreas||prefs.areas||[],wish=dv("hWish",prefs.wish||"");
+  const r=await askJSON(`Ти — тревел-експерт. ${ctx(t)}
+Підбери 6 готелів, які реально існують і які ти добре знаєш (обирай відомі, перевірені варіанти; не вигадуй назв). Бюджет ~${perNight} EUR за ніч за номер. Бажане розташування: ${areas.join(", ")||"будь-яке зручне"}. Побажання: ${wish||"немає"}.
+Якщо місто не вказане — обери найкраще місто в цій країні під формат поїздки і вкажи це в areaAdvice.
+Схема JSON: {"areaAdvice":"2-3 речення: в якому районі краще жити і чому","hotels":[{"name":"точна назва готелю","area":"район","stars":4,"pricePerNight":95,"rating":8.7,"why":"1-2 речення чому підходить","lat":41.38,"lng":2.17}]}`);
+  const items=(r.hotels||[]).slice(0,8);if(!items.length)throw{code:"bad_json"};
+  await write("hotels",()=>S.data.setPart(t.id,"hotels",{prefs:{perNight,areas,wish},areaAdvice:r.areaAdvice||"",items,at:Date.now()}));
+}
+async function genLogi(){
+  const t=S.trip,p=S.parts.logistics||{},mode=S.d.logMode||p.mode||"avia",from=dv("lFrom",p.from||t.fromCity||"Київ");
+  const what={avia:"літаком: з яких аеропортів зручно вилетіти, прямі/з пересадками рейси, авіакомпанії, приблизні ціни",
+    train:"потягом: які прямі або з пересадками потяги (зокрема Укрзалізниця та міжнародні сполучення), де пересадки, тривалість",
+    transfer:"трансфером від аеропорту/вокзалу прибуття до готелю: варіанти (громадський транспорт, шатл, таксі, Bolt/Uber), що найкраще",
+    bus:"рейсовим автобусом (FlixBus та інші перевізники): маршрути, пересадки, тривалість",
+    car:"авто: оптимальний маршрут, кордони і черги, платні дороги/віньєтки, документи, паркування на місці"}[mode];
+  const r=await askJSON(`Ти — експерт з логістики подорожей. ${ctx(t)} Виїзд з: ${from}.
+Розпиши, як дістатися ${what}. Враховуй реалії для українців: цивільні аеропорти України можуть бути закриті — якщо так, пропонуй виліт із найближчих аеропортів сусідніх країн (напр. Жешув, Краків, Варшава, Кишинів, Будапешт) і як туди дістатися.
+Схема JSON: {"summary":"2-3 речення найкращої рекомендації","options":[{"title":"назва варіанту","details":"як саме їхати","duration":"≈ час","price":"≈ ціна в EUR","tip":"порада"}],"airports":{"from":["IATA-код аеропорту вильоту"],"to":["IATA-код аеропорту прибуття"]},"fromPoint":"точка прибуття для трансферу (аеропорт або вокзал), для пошуку в Google Maps"}
+Дай 3-4 варіанти.`);
+  const results={...(p.results||{}),[mode]:{...r,at:Date.now()}};
+  await write("logistics",()=>S.data.setPart(t.id,"logistics",{from,mode,results}));
+}
+function planPrompt(t,days,fmt,int){return `Ти — досвідчений тревел-планувальник. ${ctx(t)}
+Склади план поїздки на ${days} днів. Формат: ${FORMATS[fmt]}. Інтенсивність: ${INTENSITY[int]}.
+Правила: кожен день з 10:00 до 21:00; обов'язково обід і вечеря (конкретні заклади поруч з маршрутом); логічний маршрут без зайвих переїздів${t.chosenHotel?", старт і фініш біля готелю":""}; врахуй день прибуття і від'їзду; для дітей — паузи і дитячі активності; для релаксу — менше пунктів, довші перерви; для насиченого — більше пунктів. Описи короткі (до 20 слів).
+Схема JSON: {"note":"1-2 речення загальної ідеї","days":[{"day":1,"date":"${t.startDate}","theme":"тема дня","items":[{"time":"10:00","end":"11:30","title":"що робимо","desc":"коротко","place":"назва місця для пошуку на мапі","kind":"sight|museum|food|walk|rest|beach|shop|activity|transfer|night"}]}]}`}
+async function genPlan(){
+  const t=S.trip,st=(S.parts.plan||{}).settings||{};
+  const days=Math.max(1,Math.min(14,Math.round(num(S.d.pDays,st.days||t.nights+1)))),fmt=S.d.pFormat||st.format||t.format,int=S.d.pInt||st.intensity||t.intensity||"balance";
+  const r=await askJSON(planPrompt(t,days,fmt,int));if(!(r.days||[]).length)throw{code:"bad_json"};
+  await write("plan",()=>S.data.setPart(t.id,"plan",{settings:{days,format:fmt,intensity:int},note:r.note||"",days:r.days,requests:[],at:Date.now()}));
+}
+async function refinePlan(){
+  const t=S.trip,p=S.parts.plan||{},req=(S.d.pRefine||"").trim();if(!req){toast("Напишіть, що змінити");return}
+  const st=p.settings||{};
+  const r=await askJSON(`${planPrompt(t,st.days||t.nights+1,st.format||t.format,st.intensity||"balance")}
+Ось поточний план: ${JSON.stringify({note:p.note,days:p.days})}
+Користувач просить змінити: "${req}". Онови план з урахуванням прохання, решту збережи. Поверни ПОВНИЙ план у тій самій схемі.`);
+  if(!(r.days||[]).length)throw{code:"bad_json"};
+  await write("plan",()=>S.data.setPart(t.id,"plan",{...p,note:r.note||p.note||"",days:r.days,requests:[...(p.requests||[]),req].slice(-10),at:Date.now()}));
+  S.d.pRefine="";
+}
+async function genPlaces(key){
+  const t=S.trip,wish=dv(key+"Wish",(S.parts[key]||{}).wish||"");
+  const planPlaces=((S.parts.plan||{}).days||[]).flatMap(d=>(d.items||[]).map(i=>i.place).filter(Boolean)).slice(0,25);
+  const ctxPlan=planPlaces.length?` Місця з плану поїздки: ${planPlaces.join("; ")}.`:"";
+  const prompt=key==="food"?`Ти — місцевий фуд-гід. ${ctx(t)}${ctxPlan}
+Порадь 10 ресторанів/кафе з високим рейтингом, які реально існують і які ти знаєш, поруч із готелем${planPlaces.length?" та місцями з плану":""}. Різні цінові рівні під бюджет і формат поїздки. Побажання: ${wish||"немає"}.
+Схема JSON: {"items":[{"name":"точна назва","cuisine":"кухня","price":"€|€€|€€€","rating":4.6,"desc":"1-2 речення: чим цікавий, що замовити","near":"біля чого / у який день плану","lat":0,"lng":0}]}`
+  :`Ти — місцевий гід із шопінгу. ${ctx(t)}${ctxPlan}
+Порадь 8 цікавих, унікальних магазинів, ринків чи крамниць, вартих уваги в цьому районі (локальні бренди, ремесло, гастро-сувеніри, вінтаж, концепт-стори), які реально існують. Побажання: ${wish||"немає"}.
+Схема JSON: {"items":[{"name":"точна назва","type":"тип магазину","desc":"1-2 речення, що там унікального","near":"біля чого","lat":0,"lng":0}]}`;
+  const r=await askJSON(prompt);if(!(r.items||[]).length)throw{code:"bad_json"};
+  await write(key,()=>S.data.setPart(t.id,key,{wish,items:r.items.slice(0,12),at:Date.now()}));
+}
+async function genTips(){
+  const t=S.trip;
+  const r=await askJSON(`Ти — досвідчений мандрівник і гід. ${ctx(t)}
+Дай практичні поради для цієї поїздки. Розділи: «Безпека» (шахраї, райони, номери екстрених служб), «Штрафи та правила» (транспорт, куріння, алкоголь, туристичний збір, дрескод тощо), «Варто відвідати» (не очевидні місця), «Історія та цікаві факти», «Гроші та чайові», «Етикет і корисне» (мова, розетки, вода, SIM/інтернет), «Для українців» (документи, в'їзд, консульство). По 3-6 конкретних пунктів у кожному.
+Схема JSON: {"sections":[{"title":"Безпека","icon":"🛡️","items":["..."]}]}`);
+  if(!(r.sections||[]).length)throw{code:"bad_json"};
+  await write("tips",()=>S.data.setPart(t.id,"tips",{sections:r.sections,at:Date.now()}));
+}
+
+/* ---------- Дії ---------- */
+const ACT={
+  top:()=>window.scrollTo({top:0,behavior:"smooth"}),
+  toSignin:()=>{const el=document.getElementById("email");if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.focus()}},
+  signIn:()=>{const email=(S.d.email||"").trim();if(!/^\S+@\S+\.\S+$/.test(email)){toast("Введіть коректний email");return}
+    run("auth",async()=>{const{error}=await S.sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw{message:error.message};S.sent=email})},
+  resetSent:()=>{S.sent=null;render()},
+  google:()=>{S.sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.origin+location.pathname}})},
+  logout:async()=>{if(S.sb)await S.sb.auth.signOut()},
+  home:()=>goHome(),
+  open:v=>{S.tab="hotel";openTrip(v)},
+  newTrip:()=>{S.wz={step:0,budgetLevel:"mid",format:"friends",intensity:"balance",sug:[]};["wzCountry","wzCity","wzBudget"].forEach(k=>delete S.d[k]);S.view="wizard";render();window.scrollTo(0,0)},
+  wz:v=>{const[f,k]=v.split(":");S.wz[f]=k;render()},
+  wzBack:()=>{S.wz.step--;render()},
+  wzNext:()=>{const w=S.wz;
+    if(w.step===0&&!(S.d.wzCountry||"").trim()){toast("Вкажіть країну");return}
+    if(w.step<3){w.step++;render();window.scrollTo(0,0);return}
+    run("create",async()=>{
+      const id=rid(10),country=S.d.wzCountry.trim(),city=(S.d.wzCity||"").trim();
+      const t={id,title:city||country,country,city,startDate:dv("wzStart",addDays(today(),30)),nights:Math.max(1,Math.min(30,Math.round(num(dv("wzNights","5"),5)))),
+        adults:Math.max(1,Math.round(num(dv("wzAdults","2"),2))),kids:Math.max(0,Math.round(num(dv("wzKids","0"),0))),fromCity:(dv("wzFrom","Київ")||"Київ").trim(),
+        budgetLevel:w.budgetLevel,budgetTotal:Math.round(num(S.d.wzBudget,0))||null,format:w.format,intensity:w.intensity,
+        members:[S.uid],ownerId:S.uid,createdAt:Date.now(),chosenHotel:null};
+      await S.data.createTrip(t);S.tab="hotel";openTrip(id);
+    })},
+  suggestCity:()=>{const c=(S.d.wzCountry||"").trim();if(!c){toast("Спершу вкажіть країну");return}
+    run("city",async()=>{const r=await askJSON(`Порадь 4 найкращі міста або регіони для подорожі в країну ${c} для українського туриста. Формат поїздки: ${FORMATS[S.wz.format]||"будь-який"}. Схема JSON: {"cities":[{"name":"місто","why":"1 речення чому"}]}`,"quick");S.wz.sug=(r.cities||[]).slice(0,5)})},
+  pickCity:v=>{const c=S.wz.sug[+v];if(c){S.d.wzCity=c.name;render()}},
+  join:()=>{const code=(S.d.joinCode||"").trim().toLowerCase().replace(/[^a-z0-9]/g,"");if(!code){toast("Введіть код");return}S.d.joinCode="";openTrip(code)},
+  joinThis:()=>run("join",async()=>{const ok=await S.data.joinTrip(S.tripId);if(!ok)throw{message:"Подорож не знайдено"};toast("Ви в подорожі! 🎉");S.tab="hotel";openTrip(S.tripId)}),
+  tab:v=>{S.tab=v;render()},
+  hArea:v=>{const cur=S.d.hAreas||((S.parts.hotels||{}).prefs||{}).areas||[];S.d.hAreas=cur.includes(v)?cur.filter(x=>x!==v):[...cur,v];render()},
+  genHotels:()=>run("hotels",genHotels),
+  choose:v=>{const x=((S.parts.hotels||{}).items||[])[+v];if(!x)return;const t=S.trip;
+    const hh={name:x.name,area:x.area||"",pricePerNight:x.pricePerNight||null,lat:num(x.lat,null),lng:num(x.lng,null),by:S.uid};
+    S.trip={...t,chosenHotel:hh};render();write("trip",()=>S.data.setHotel(t.id,hh)).then(()=>toast("Готель обрано ✅")).catch(()=>{})},
+  unchoose:()=>{const t=S.trip;S.trip={...t,chosenHotel:null};render();write("trip",()=>S.data.setHotel(t.id,null)).catch(()=>{})},
+  save:v=>{const i=v.indexOf("|"),kind=v.slice(0,i),id=v.slice(i+1),t=S.trip,me=S.votes[S.uid]||{},arr=me[kind]||[];
+    const next={...me,[kind]:arr.includes(id)?arr.filter(x=>x!==id):[...arr,id]};S.votes={...S.votes,[S.uid]:next};render();
+    write("vote",()=>S.data.setVote(t.id,next)).catch(()=>{})},
+  logMode:v=>{S.d.logMode=v;render()},
+  genLogi:()=>run("logi",genLogi),
+  pset:v=>{const[f,k]=v.split(":");S.d[f]=k;render()},
+  genPlan:()=>run("plan",genPlan),
+  refinePlan:()=>run("plan",refinePlan),
+  gen:v=>run(v,()=>genPlaces(v)),
+  genTips:()=>run("tips",genTips),
+  jump:v=>{const el=document.getElementById("it-"+v);if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.style.outline="2px solid var(--warm)";setTimeout(()=>el.style.outline="",1500)}},
+  addNote:v=>{const txt=(S.d["note-"+v]||"").trim();if(!txt)return;const t=S.trip;S.d["note-"+v]="";render();
+    write("note",()=>S.data.addNote(t.id,{section:v,text:txt.slice(0,1000)})).catch(()=>{S.d["note-"+v]=txt;render()})},
+  delNote:(v,b,e)=>{e.preventDefault();const t=S.trip;S.notes=S.notes.filter(n=>n.id!==v);render();write("note",()=>S.data.delNote(t.id,v)).catch(()=>{})},
+  copy:async v=>{try{await navigator.clipboard.writeText(v);toast("Скопійовано")}catch(e){const el=document.getElementById("inviteLink");if(el){el.select()}toast("Виділено — скопіюйте вручну")}},
+  share:async()=>{const t=S.trip,url=tripLink(t.id);
+    if(navigator.share){try{await navigator.share({title:`${BRAND}: ${t.title}`,text:`Приєднуйся до подорожі «${t.title}» у ${BRAND}!`,url});return}catch(e){if(e&&e.name==="AbortError")return}}
+    ACT.copy(url)},
+  saveName:()=>{const n=(S.d.myName||"").trim().slice(0,60);if(!n){toast("Введіть ім'я");return}S.names[S.uid]=n;render();write("name",()=>S.data.setMyName(n)).then(()=>toast("Збережено")).catch(()=>{})},
+  askDel:()=>{S.confirmDel=true;render()},noDel:()=>{S.confirmDel=false;render()},
+  delTrip:async()=>{const t=S.trip;try{await write("trip",()=>S.data.deleteTrip(t.id));toast("Подорож видалено");goHome()}catch(e){}},
+  leave:async()=>{const t=S.trip;try{await write("trip",()=>S.data.leaveTrip(t.id));goHome()}catch(e){}},
+};
+
+/* ---------- Події ---------- */
+document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b)return;const f=ACT[b.dataset.a];if(f){if(b.tagName==="A"&&b.getAttribute("href")==null)e.preventDefault();f(b.dataset.v,b,e)}});
+document.addEventListener("input",e=>{if(e.target.id)S.d[e.target.id]=e.target.value});
+document.addEventListener("keydown",e=>{if(e.key!=="Enter"||e.target.tagName!=="INPUT"||!e.target.id)return;const id=e.target.id;
+  if(id==="joinCode")ACT.join();else if(id==="email")ACT.signIn();else if(id==="myName")ACT.saveName();else if(id.startsWith("note-"))ACT.addNote(id.slice(5))});
+window.addEventListener("hashchange",()=>{if(!S.uid)return;const m=(location.hash||"").match(/^#trip-([a-z0-9]+)$/);if(m&&m[1]!==S.tripId)openTrip(m[1]);else if(!m&&S.view==="trip")goHome()});
+S.view="loading";init();
+</script>
+</body>
+</html>
