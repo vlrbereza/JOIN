@@ -1,0 +1,13 @@
+{
+  "name": "join-travel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Join — плануйте подорожі разом",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
